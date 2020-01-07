@@ -203,6 +203,12 @@ class Config(object):
         action.add_argument('master_seed', help='Source master seed')
         action.add_argument('site_address_index', help='Site address index', type=int)
 
+        # Crypt GetPrivatekeyFromName
+        action = self.subparsers.add_parser("cryptGetPrivatekeyFromName", help='Generate a privatekey from master seed')
+        action.add_argument('master_seed', help='Source master seed')
+        action.add_argument('site_address_name', help='Site address name', type=str)
+
+
         action = self.subparsers.add_parser("getConfig", help='Return json-encoded info')
         action = self.subparsers.add_parser("testConnection", help='Testing')
         action = self.subparsers.add_parser("testAnnounce", help='Testing')

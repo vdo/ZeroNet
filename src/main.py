@@ -4,6 +4,7 @@ import sys
 import stat
 import time
 import logging
+from hashlib import blake2s
 
 startup_errors = []
 def startupError(msg):
@@ -465,6 +466,17 @@ class Actions(object):
             return False
         privatekey = CryptBitcoin.hdPrivatekey(master_seed, site_address_index)
         print("Requested private key: %s" % privatekey)
+
+    def cryptGetPrivatekeyFromName(self, master_seed, site_address_name=None):
+        from Crypt import CryptBitcoin
+        if len(master_seed) != 64:
+            logging.error("Error: Invalid master seed length: %s (required: 64)" % len(master_seed))
+            return False
+        hasher = blake2s(digest_size=8)
+        hasher.update(str.encode(site_address_name,'utf-8'))
+        index = int(hasher.hexdigest(),16)
+        privatekey = CryptBitcoin.hdPrivatekey(master_seed, index)
+        print("Requested from hash private key: %s" % privatekey)
 
     # Peer
     def peerPing(self, peer_ip, peer_port=None):
