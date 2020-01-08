@@ -4,7 +4,6 @@ import sys
 import stat
 import time
 import logging
-from hashlib import blake2s
 
 startup_errors = []
 def startupError(msg):
@@ -177,6 +176,7 @@ class Actions(object):
         logging.info("Site private key: %s" % privatekey)
         logging.info("                  !!! ^ Save it now, required to modify the site ^ !!!")
         logging.info("Site address:     %s" % address)
+        logging.info("Site index:     %s" % address_index)
         logging.info("----------------------------------------------------------------------")
 
         while True and not config.batch and not use_master_seed:
@@ -204,6 +204,43 @@ class Actions(object):
         site.saveSettings()
 
         logging.info("Site created!")
+
+    def siteCreateDeterministic(self, site_name=None):
+        logging.info("Generating new privatekey from master seed with name: %s ..." % site_name)
+        from Crypt import CryptBitcoin
+        from User import UserManager
+        user = UserManager.user_manager.get()
+        if not user:
+            user = UserManager.user_manager.create()
+
+        try:
+            address, address_index, site_data = user.getNewSiteDataDeterministic(site_name)
+            privatekey = site_data["privatekey"]
+            logging.info("Generated using master seed from users.json, site index: %s" % address_index)
+
+            logging.info("Creating directory structure...")
+            from Site.Site import Site
+            from Site import SiteManager
+            SiteManager.site_manager.load()
+
+            os.mkdir("%s/%s" % (config.data_dir, address))
+            open("%s/%s/index.html" % (config.data_dir, address), "w").write("Hello %s!" % address)
+
+            logging.info("Creating content.json...")
+            site = Site(address)
+            extend = {"postmessage_nonce_security": True}
+            extend["address_index"] = address_index
+
+            site.content_manager.sign(privatekey=privatekey, extend=extend)
+            site.settings["own"] = True
+            site.saveSettings()
+
+            logging.info("Site created!")
+        except Exception as err:
+            if (err.args[0] == "Site already exists."):
+                logging.info(err.args[0])
+            else:
+                logging.exception("Error creating site:")
 
     def siteSign(self, address, privatekey=None, inner_path="content.json", publish=False, remove_missing_optional=False):
         from Site.Site import Site
@@ -469,6 +506,7 @@ class Actions(object):
 
     def cryptGetPrivatekeyFromName(self, master_seed, site_address_name=None):
         from Crypt import CryptBitcoin
+        from hashlib import blake2s
         if len(master_seed) != 64:
             logging.error("Error: Invalid master seed length: %s (required: 64)" % len(master_seed))
             return False
@@ -477,6 +515,7 @@ class Actions(object):
         index = int(hasher.hexdigest(),16)
         privatekey = CryptBitcoin.hdPrivatekey(master_seed, index)
         print("Requested from hash private key: %s" % privatekey)
+        print("Address: %s" % CryptBitcoin.privatekeyToAddress(privatekey))
 
     # Peer
     def peerPing(self, peer_ip, peer_port=None):

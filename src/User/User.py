@@ -105,6 +105,24 @@ class User(object):
         self.save()
         return site_address, bip32_index, self.sites[site_address]
 
+    # Get data for a site based on a string input, deterministic
+    # Return: [site_address, bip32_index, {"auth_address": "xxx", "auth_privatekey": "xxx", "privatekey": "xxx"}]
+    def getNewSiteDataDeterministic(self, name):
+        import random
+        from hashlib import blake2s
+        hasher = blake2s(digest_size=8)
+        hasher.update(str.encode(name,'utf-8'))
+        bip32_index = int(hasher.hexdigest(),16) % 100000000
+        site_privatekey = CryptBitcoin.hdPrivatekey(self.master_seed, bip32_index)
+        site_address = CryptBitcoin.privatekeyToAddress(site_privatekey)
+        if site_address in self.sites:
+            raise Exception("Site already exists.")
+        # Save to sites
+        self.getSiteData(site_address)
+        self.sites[site_address]["privatekey"] = site_privatekey
+        self.save()
+        return site_address, bip32_index, self.sites[site_address]
+
     # Get BIP32 address from site address
     # Return: BIP32 auth address
     def getAuthAddress(self, address, create=True):

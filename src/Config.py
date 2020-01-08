@@ -120,6 +120,10 @@ class Config(object):
         action.register('type', 'bool', self.strToBool)
         action.add_argument('--use_master_seed', help="Allow created site's private key to be recovered using the master seed in users.json (default: True)", type="bool", choices=[True, False], default=True)
 
+        # SiteCreateDeterministic
+        action = self.subparsers.add_parser("siteCreateDeterministic", help='Create a new site from master seed, based on a provided name')
+        action.add_argument('site_name', help='Site name', type=str)
+
         # SiteNeedFile
         action = self.subparsers.add_parser("siteNeedFile", help='Get a file from site')
         action.add_argument('address', help='Site address')
